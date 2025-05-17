@@ -1,0 +1,199 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useRef } from 'react';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+interface ProjectStatus {
+  name: string;
+  status: 'normal' | 'warning' | 'critical';
+}
+
+interface SimpleGanttChartProps {
+  title?: string;
+}
+
+const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
+  title = "Project Timeline"
+}) => {
+  const chartRef = useRef<HTMLDivElement>(null);
+  const projectsRef = useRef<HTMLDivElement>(null);
+  
+  // Sample projects with status
+  const projects: ProjectStatus[] = [
+    { name: 'AI Innovation Hub', status: 'normal' },
+    { name: 'Cloud Optimization Project', status: 'normal' },
+    { name: 'Cybersecurity Enhancement Program', status: 'warning' },
+    { name: 'Data Analytics Initiative', status: 'normal' },
+    { name: 'Blockchain Integration Task', status: 'critical' }
+  ];
+
+  // Monthly headers
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  // Create labels from project names
+  const labels = projects.map(project => project.name);
+
+  // Status indicator color function
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'warning':
+        return '#F8D905'; // Yellow
+      case 'critical':
+        return '#F62F82'; // Pink
+      default:
+        return '#1DE9B6'; // Green
+    }
+  };
+
+  // Dataset colors from Figma
+  const colors = {
+    requirementDiscussion: '#8252FF', // Purple
+    proposal: '#1A31FF', // Blue
+    approved: '#008CFF', // Light blue
+    developing: '#1DE9B6', // Green
+  };
+
+  const [chartData, setChartData] = useState({
+    labels,
+    datasets: [
+      {
+        label: 'Requirement Discussion',
+        data: [2, 3, 0, 4, 5],
+        backgroundColor: colors.requirementDiscussion,
+        barThickness: 10,
+        borderWidth: 0,
+        borderRadius: 2,
+      },
+      {
+        label: 'Proposal',
+        data: [6, 4, 3, 3, 0],
+        backgroundColor: colors.proposal,
+        barThickness: 10,
+        borderWidth: 0,
+        borderRadius: 2,
+      },
+      {
+        label: 'Approved',
+        data: [3, 5, 4, 1, 3],
+        backgroundColor: colors.approved,
+        barThickness: 10,
+        borderWidth: 0,
+        borderRadius: 2,
+      },
+      {
+        label: 'Developing',
+        data: [4, 2, 5, 3, 0],
+        backgroundColor: colors.developing,
+        barThickness: 10,
+        borderWidth: 0,
+        borderRadius: 2,
+      },
+    ],
+  });
+
+  // Synchronize scrolling between the fixed column and the chart
+  useEffect(() => {
+    const projectsElement = projectsRef.current;
+    const chartElement = chartRef.current;
+
+    if (!projectsElement || !chartElement) return;
+
+    const handleChartScroll = () => {
+      if (chartElement) {
+        projectsElement.scrollTop = chartElement.scrollTop;
+      }
+    };
+
+    chartElement.addEventListener('scroll', handleChartScroll);
+    return () => {
+      chartElement.removeEventListener('scroll', handleChartScroll);
+    };
+  }, []);
+
+  const options = {
+    indexAxis: 'y' as const,
+    maintainAspectRatio: false,
+    elements: {
+      bar: {
+        borderWidth: 0,
+      },
+    },
+    responsive: true,
+    scales: {
+      y: {
+        display: false, // Hide Y-axis labels since we'll show them in our custom fixed column
+        grid: {
+          display: true,
+          color: '#585869',
+          lineWidth: 1,
+          borderDash: [2, 2],
+        },
+      },
+      x: {
+        grid: {
+          display: true,
+          color: '#585869',
+          lineWidth: 1,
+          borderDash: [2, 2],
+        },
+        ticks: {
+          font: {
+            family: 'Pretendard, sans-serif',
+            size: 14,
+          },
+          color: '#FFFFFF',
+        },
+      },
+    },
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          font: {
+            family: 'Pretendard, sans-serif',
+            size: 12,
+          },
+          color: '#FFFFFF',
+          usePointStyle: true,
+          padding: 20,
+        },
+      },
+      title: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: '#373743',
+        titleFont: {
+          family: 'Pretendard, sans-serif',
+          size: 14,
+          weight: 'bold',
+        },
+        bodyFont: {
+          family: 'Pretendard, sans-serif',
+          size: 12,
+        },
+        padding: 10,
+        cornerRadius: 6,
+      },
+    },
+  };
+
+export default SimpleGanttChart;
