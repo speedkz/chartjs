@@ -36,6 +36,7 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const projectsRef = useRef<HTMLDivElement>(null);
+  const monthsRef = useRef<HTMLDivElement>(null);
 
   // Sample projects with status
   const projects: ProjectStatus[] = [
@@ -83,7 +84,9 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
     proposal: "#1A31FF", // Blue
     approved: "#008CFF", // Light blue
     developing: "#1DE9B6", // Green
-  }; // Create dataset object for chart
+  }; 
+  
+  // Create dataset object for chart
   const createChartData = () => ({
     labels,
     datasets: [
@@ -123,6 +126,7 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
   });
 
   const [chartData, setChartData] = useState(createChartData());
+  
   // Update chart data on window resize
   useEffect(() => {
     const handleResize = () => {
@@ -132,35 +136,45 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [createChartData]);
-  // Synchronize scrolling between the fixed column and the chart
+  
+  // Synchronize scrolling between the fixed column and the chart/months header
   useEffect(() => {
     const projectsElement = projectsRef.current;
     const chartElement = chartRef.current;
+    const monthsElement = monthsRef.current;
 
-    if (!projectsElement || !chartElement) return;
+    if (!projectsElement || !chartElement || !monthsElement) return;
 
+    // Handle vertical scrolling to sync projects column with chart
     const handleChartVerticalScroll = () => {
       if (chartElement) {
         projectsElement.scrollTop = chartElement.scrollTop;
       }
     };
 
-    // Handle horizontal scrolling to keep the Projects column fixed
+    // Handle horizontal scrolling to sync months header with chart content
     const handleChartHorizontalScroll = () => {
-      const projectsContainer = document.querySelector(
-        ".projects-column-container"
-      );
-      if (projectsContainer && chartElement) {
-        projectsContainer.scrollLeft = 0; // Always keep the projects column in view
+      if (chartElement && monthsElement) {
+        monthsElement.scrollLeft = chartElement.scrollLeft;
       }
     };
 
     chartElement.addEventListener("scroll", handleChartVerticalScroll);
     chartElement.addEventListener("scroll", handleChartHorizontalScroll);
-
+    
+    // Also sync when the months header is scrolled
+    const handleMonthsScroll = () => {
+      if (monthsElement && chartElement) {
+        chartElement.scrollLeft = monthsElement.scrollLeft;
+      }
+    };
+    
+    monthsElement.addEventListener("scroll", handleMonthsScroll);
+    
     return () => {
       chartElement.removeEventListener("scroll", handleChartVerticalScroll);
       chartElement.removeEventListener("scroll", handleChartHorizontalScroll);
+      monthsElement.removeEventListener("scroll", handleMonthsScroll);
     };
   }, []);
 
@@ -222,6 +236,7 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
       },
     },
   };
+  
   return (
     <div className="bg-[#212124] rounded-lg overflow-hidden p-4">
       <h2 className="text-base sm:text-lg font-semibold text-white mb-4">
@@ -238,9 +253,10 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
           Projects
         </div>
 
-        {/* Scrollable months header - use absolute positioning to ensure month headers fill width */}
+        {/* Months header with synchronized scrolling */}
         <div
-          className="overflow-x-auto scrollbar-container"
+          ref={monthsRef}
+          className="overflow-x-auto custom-scrollbar months-header"
           style={{ marginLeft: "240px", position: "relative" }}
         >
           <div
@@ -291,10 +307,10 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             ))}
           </div>
 
-          {/* Scrollable chart area - adjusted to match the new fixed column width */}
+          {/* Scrollable chart area - will be synchronized with months header */}
           <div
             ref={chartRef}
-            className="overflow-x-auto custom-scrollbar"
+            className="overflow-x-auto custom-scrollbar chart-content"
             style={{ marginLeft: "240px", width: "calc(100% - 240px)" }}
           >
             <div style={{ minWidth: "1020px", height: "300px" }}>

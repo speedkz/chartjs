@@ -17,3 +17,33 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #666;
 }
+
+/* Ensure fixed column stays in place */
+.projects-column-container {
+  box-shadow: 5px 0 10px rgba(0, 0, 0, 0.2);
+  border-right: 1px solid #373743;
+}
+
+/* Synchronized scrolling between months and chart */
+.months-header {
+  overflow-x: scroll;
+  scrollbar-width: none; /* Firefox */
+}
+
+.months-header::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+.chart-content {
+  overflow-y: auto;
+}
+
+/* Handle scrollbar interaction */
+.chart-content:hover + .months-header {
+  overflow-x: auto;
+}
+
+/* Add smooth scrolling */
+.months-header, .chart-content {
+  scroll-behavior: smooth;
+}
