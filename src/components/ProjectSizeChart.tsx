@@ -148,11 +148,11 @@ const ProjectSizeChart: React.FC<ProjectSizeProps> = ({
               }
 
               return value;
-            },
-          },
+            },          },
           // Add some padding to ensure labels have enough space
-          afterFit: function (scaleInstance: Scale) {
-            // Increase width to ensure project names are visible          scaleInstance.width = 180; // Fixed width for the y-axis - slightly increased for better spacing
+          afterFit: function (scale: Scale) {
+            // Increase width to ensure project names are visible
+            scale.width = 180; // Fixed width for the y-axis - slightly increased for better spacing
           },
         },
         x: {
