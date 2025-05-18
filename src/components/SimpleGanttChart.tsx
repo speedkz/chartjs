@@ -1,15 +1,19 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import type { ChartData, ChartOptions, TooltipItem } from "chart.js";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
   BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
   Title,
   Tooltip,
-  Legend,
 } from "chart.js";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
+import {
+  type ProjectTimelineData,
+  fetchProjectTimelines,
+} from "../api/ganttChartApi";
 
 // Register ChartJS components
 ChartJS.register(
@@ -21,26 +25,21 @@ ChartJS.register(
   Legend
 );
 
-interface ProjectStatus {
-  name: string;
-  status: "normal" | "warning" | "critical";
-}
-
 interface SimpleGanttChartProps {
   title?: string;
 }
 
+// Define Chart.js type for bar chart
+type BarChartData = ChartData<"bar", number[], string>;
+
 const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
   title = "Project Timeline",
-}) => {
-  // Sample projects with status
-  const projects: ProjectStatus[] = [
-    { name: "AI Innovation Hub", status: "normal" },
-    { name: "Cloud Optimization Project", status: "normal" },
-    { name: "Cybersecurity Enhancement Program", status: "warning" },
-    { name: "Data Analytics Initiative", status: "normal" },
-    { name: "Blockchain Integration Task", status: "critical" },
-  ];
+}) => {  const [loading, setLoading] = useState<boolean>(true);
+  const [projectData, setProjectData] = useState<ProjectTimelineData[]>([]);
+  const [chartData, setChartData] = useState<BarChartData>({
+    labels: [],
+    datasets: [],
+  });
 
   // Monthly headers
   const months = [
@@ -58,11 +57,8 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
     "Dec",
   ];
 
-  // Create labels from project names
-  const labels = projects.map((project) => project.name);
-
   // Status indicator color function
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
       case "warning":
         return "#F8D905"; // Yellow
@@ -72,127 +68,193 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
         return "#1DE9B6"; // Green
     }
   };
-
   // Dataset colors from Figma
-  const colors = {
+  const colors = useMemo(() => ({
     requirementDiscussion: "#8252FF", // Purple
     proposal: "#1A31FF", // Blue
     approved: "#008CFF", // Light blue
     developing: "#1DE9B6", // Green
-  };
-  // Create dataset object for chart
-  const createChartData = () => ({
-    labels,
-    datasets: [
-      {
-        label: "Requirement Discussion",
-        data: [2, 3, 0, 4, 5],
-        backgroundColor: colors.requirementDiscussion,
-        barThickness: 10,
-        borderWidth: 0,
-        borderRadius: 2,
-        stack: "Stack 0", // Add stack for stacking bars
-      },
-      {
-        label: "Proposal",
-        data: [6, 4, 3, 3, 0],
-        backgroundColor: colors.proposal,
-        barThickness: 10,
-        borderWidth: 0,
-        borderRadius: 2,
-        stack: "Stack 0", // Add stack for stacking bars
-      },
-      {
-        label: "Approved",
-        data: [3, 5, 4, 1, 3],
-        backgroundColor: colors.approved,
-        barThickness: 10,
-        borderWidth: 0,
-        borderRadius: 2,
-        stack: "Stack 0", // Add stack for stacking bars
-      },
-      {
-        label: "Developing",
-        data: [4, 2, 5, 3, 0],
-        backgroundColor: colors.developing,
-        barThickness: 10,
-        borderWidth: 0,
-        borderRadius: 2,
-        stack: "Stack 0", // Add stack for stacking bars
-      },
-    ],
-  });
+  }), []);
 
-  const [chartData, setChartData] = useState(createChartData());
+  // Create dataset object for chart
+  const createChartData = useCallback(
+    (data: ProjectTimelineData[]): BarChartData => {
+      if (!data.length) return { labels: [], datasets: [] };
+
+      const labels = data.map((item) => item.project.name);
+
+      return {
+        labels,
+        datasets: [
+          {
+            label: "Requirement Discussion",
+            data: data.map((item) => item.phases.requirementDiscussion),
+            backgroundColor: colors.requirementDiscussion,
+            barThickness: 10,
+            borderWidth: 0,
+            borderRadius: 2,
+            stack: "Stack 0", // Add stack for stacking bars
+          },
+          {
+            label: "Proposal",
+            data: data.map((item) => item.phases.proposal),
+            backgroundColor: colors.proposal,
+            barThickness: 10,
+            borderWidth: 0,
+            borderRadius: 2,
+            stack: "Stack 0", // Add stack for stacking bars
+          },
+          {
+            label: "Approved",
+            data: data.map((item) => item.phases.approved),
+            backgroundColor: colors.approved,
+            barThickness: 10,
+            borderWidth: 0,
+            borderRadius: 2,
+            stack: "Stack 0", // Add stack for stacking bars
+          },
+          {
+            label: "Developing",
+            data: data.map((item) => item.phases.developing),
+            backgroundColor: colors.developing,
+            barThickness: 10,
+            borderWidth: 0,
+            borderRadius: 2,
+            stack: "Stack 0", // Add stack for stacking bars
+          },
+        ],
+      };
+    },
+    [colors]
+  );
+
+  // Fetch project data on component mount
+  useEffect(() => {
+    const getProjects = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchProjectTimelines();
+        setProjectData(data);
+        setChartData(createChartData(data));
+      } catch (error) {
+        console.error("Failed to fetch project timeline data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getProjects();
+  }, [createChartData]);
+
   // Update chart data on window resize
   useEffect(() => {
+    let resizeTimer: number | null = null;
+
     const handleResize = () => {
-      setChartData(createChartData());
+      if (resizeTimer) {
+        window.clearTimeout(resizeTimer);
+      }
+
+      resizeTimer = window.setTimeout(() => {
+        setChartData(createChartData(projectData));
+      }, 250); // Add 250ms delay to prevent multiple rerenders
     };
 
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [createChartData]);
-  const options = {
-    indexAxis: "y" as const,
-    maintainAspectRatio: false,
-    elements: {
-      bar: {
-        borderWidth: 0,
-      },
-    },
-    responsive: true,
-    scales: {
-      y: {
-        display: false, // Hide Y-axis labels since we'll show them in our custom fixed column
-        grid: {
-          display: true,
-          color: "#585869",
-          lineWidth: 1,
-          borderDash: [2, 2],
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeTimer) window.clearTimeout(resizeTimer);
+    };
+  }, [createChartData, projectData]);
+  // Chart options with proper typing
+  const options = useMemo<ChartOptions<"bar">>(
+    () => ({
+      indexAxis: "y" as const,
+      maintainAspectRatio: false,
+      elements: {
+        bar: {
+          borderWidth: 0,
         },
-        stacked: true, // Enable stacking on Y axis
       },
-      x: {
-        grid: {
-          display: true,
-          color: "#585869",
-          lineWidth: 1,
-          borderDash: [2, 2],
+      responsive: true,
+      animation: {
+        duration: 500, // Reduce animation duration
+      },
+      scales: {
+        y: {
+          display: false, // Hide Y-axis labels since we'll show them in our custom fixed column
+          grid: {
+            display: true,
+            color: "#585869",
+            lineWidth: 1,
+          },
+          stacked: true, // Enable stacking on Y axis
         },
-        ticks: {
-          font: {
+        x: {
+          grid: {
+            display: true,
+            color: "#585869",
+            lineWidth: 1,
+          },
+          ticks: {
+            font: {
+              family: "Pretendard, sans-serif",
+              size: 14,
+            },
+            color: "#FFFFFF",
+          },
+          stacked: true, // Enable stacking on X axis
+        },
+      },
+      plugins: {
+        legend: {
+          display: false, // Hide default legend since we're creating a custom one
+        },
+        title: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: "#373743",
+          titleFont: {
             family: "Pretendard, sans-serif",
             size: 14,
+            weight: "bold" as const,
           },
-          color: "#FFFFFF",
+          bodyFont: {
+            family: "Pretendard, sans-serif",
+            size: 12,
+          },
+          padding: 10,
+          cornerRadius: 6,
+          callbacks: {
+            title: function (items: TooltipItem<"bar">[]) {
+              if (items.length > 0) {
+                const index = items[0].dataIndex;
+                return projectData[index]?.project.name || "";
+              }
+              return "";
+            },
+            label: function (context: TooltipItem<"bar">) {
+              const value = context.parsed.x || 0;
+              const datasetLabel = context.dataset.label || "";
+              return `${datasetLabel}: ${value}`;
+            },
+          },
         },
-        stacked: true, // Enable stacking on X axis
       },
-    },
-    plugins: {
-      legend: {
-        display: false, // Hide default legend since we're creating a custom one
-      },
-      title: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: "#373743",
-        titleFont: {
-          family: "Pretendard, sans-serif",
-          size: 14,
-          weight: "bold" as const, // TypeScript fix
-        },
-        bodyFont: {
-          family: "Pretendard, sans-serif",
-          size: 12,
-        },
-        padding: 10,
-        cornerRadius: 6,
-      },
-    },
-  };  return (
+    }),
+    [projectData]
+  );
+
+  if (loading) {
+    return (
+      <div className="bg-[#212124] rounded-lg p-4 md:p-6 flex items-center justify-center">
+        <div className="text-white">Loading project data...</div>
+      </div>
+    );
+  }
+
+  return (
     <div className="bg-[#212124] rounded-lg overflow-hidden p-4">
       <h2 className="text-base sm:text-lg font-semibold text-white mb-4">
         {title}
@@ -207,25 +269,25 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
 
         {/* Projects column - fixed */}
         <div className="col-start-1 row-start-2 bg-[#212124] border-r border-[#373743] z-10 shadow-md">
-          {projects.map((project, index) => (
+          {projectData.map((item) => (
             <div
-              key={`project-${index}`}
+              key={`project-${item.project.id}`}
               className="flex items-center p-3 border-b border-[#373743]"
               style={{ height: "50px" }}
             >
               <div
                 className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
-                style={{ backgroundColor: getStatusColor(project.status) }}
+                style={{ backgroundColor: getStatusColor(item.project.status) }}
               ></div>
               <span
                 className="text-white text-sm whitespace-nowrap overflow-hidden text-ellipsis"
                 style={{
-                  color: getStatusColor(project.status),
+                  color: getStatusColor(item.project.status),
                   maxWidth: "200px",
                 }}
-                title={project.name}
+                title={item.project.name}
               >
-                {project.name}
+                {item.project.name}
               </span>
             </div>
           ))}
@@ -245,16 +307,15 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
                 </div>
               ))}
             </div>
-          </div>
-          {/* Chart area - in the same scroll container as months header */}
+          </div>          {/* Chart area - in the same scroll container as months header */}
           <div
             style={{
               minWidth: "1020px",
-              height: `${projects.length * 50}px`,
+              height: `${projectData.length * 50}px`,
               paddingTop: "4px",
             }}
           >
-            <Bar options={options} data={chartData} />
+            <Bar options={options} data={chartData} redraw={false} />
           </div>
         </div>
       </div>

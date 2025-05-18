@@ -1,16 +1,21 @@
-import { useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
+import type { ChartData, ChartOptions, TooltipItem } from "chart.js";
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
   BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Legend,
+  LinearScale,
   Title,
   Tooltip,
-  Legend,
 } from "chart.js";
+import { useCallback, useEffect, useState } from "react";
+import { Bar } from "react-chartjs-2";
+import {
+  fetchMonthlyProjectLevels,
+  type MonthlyProjectData,
+} from "../api/monthlyProjectApi";
 
-// Đăng ký các thành phần cần thiết của Chart.js
+// Register required Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -20,214 +25,175 @@ ChartJS.register(
   Legend
 );
 
-// Props cho component
+// Component props
 interface MonthlyProjectByLevelProps {
   title?: string;
   category?: string;
 }
 
+// Define Chart.js type for bar chart
+type BarChartData = ChartData<"bar", number[], string>;
+
 const MonthlyProjectByLevel: React.FC<MonthlyProjectByLevelProps> = ({
   title = "Monthly Project by level",
   category = "Telecommunication",
 }) => {
-  const chartRef = useRef<HTMLCanvasElement>(null);
-  const chartInstance = useRef<Chart | null>(null);
-  // Dữ liệu mẫu từ thiết kế Figma
-  const data = {
-    labels: ["Feb", "Mar", "Apr"],
-    datasets: [
-      {
-        label: "Level 1",
-        data: [25, 30, 45], // Giá trị mẫu dựa trên chiều cao thanh trong Figma
-        backgroundColor: "#07BFCB", // Màu Level 1 từ Figma
-        barPercentage: 0.65,
-        categoryPercentage: 0.6,
-      },
-      {
-        label: "Level 2",
-        data: [20, 25, 35], // Giá trị mẫu
-        backgroundColor: "#FF9100", // Màu Level 2 từ Figma
-        barPercentage: 0.65,
-        categoryPercentage: 0.6,
-      },
-      {
-        label: "Level 3",
-        data: [21, 21, 20], // Giá trị mẫu
-        backgroundColor: "#C6FF00", // Màu Level 3 từ Figma
-        barPercentage: 0.65,
-        categoryPercentage: 0.6,
-      },
-    ],
-  };
-  useEffect(() => {
-    if (chartRef.current) {
-      // Hủy chart instance cũ nếu có
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-
-      // Tạo plugin để vẽ background container cho mỗi tháng
-      const bgGradientPlugin = {
-        id: "bgGradient",
-        beforeDatasetsDraw(chart: Chart) {
-          const { ctx, chartArea, scales } = chart;
-          const { top, bottom, width, height } = chartArea;
-          const numberOfBars = data.labels.length;
-          const barWidth = (width / numberOfBars) * 0.7; // Chiều rộng container tương ứng với 70% của khoảng cách giữa các tháng
-
-          // Vẽ gradient background cho mỗi nhóm cột
-          data.labels.forEach((_, index) => {
-            const xPos = scales.x.getPixelForValue(index) - barWidth / 2;
-
-            // Tạo gradient
-            const gradient = ctx.createLinearGradient(0, top, 0, bottom);
-            gradient.addColorStop(0, "rgba(55, 55, 67, 0.7)");
-            gradient.addColorStop(1, "rgba(139, 139, 169, 0.05)");
-
-            // Vẽ rectangle với gradient
-            ctx.fillStyle = gradient;
-            ctx.fillRect(xPos, top, barWidth, height);
-
-            // Thêm border radius phía trên (cong nhẹ)
-            ctx.beginPath();
-            ctx.moveTo(xPos, top);
-            ctx.arcTo(xPos, top - 5, xPos + 5, top - 5, 5);
-            ctx.arcTo(xPos + barWidth, top - 5, xPos + barWidth, top, 5);
-            ctx.lineTo(xPos + barWidth, top);
-            ctx.closePath();
-            ctx.fill();
-          });
-        },
-      }; // Plugin để vẽ tổng và tên tháng
-      const labelsPlugin = {
-        id: "labelsPlugin",
-        afterDraw(chart: Chart) {
-          const { ctx, chartArea, scales } = chart;
-          // Thiết lập style cho text
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-
-          // Vẽ tổng số trên đầu mỗi cột
-          ctx.font = "bold 16px Pretendard, sans-serif";
-          ctx.fillStyle = "#ffffff";
-
-          // Tính tổng giá trị cho mỗi tháng
-          const totalsByMonth = data.datasets.reduce((totals, dataset) => {
-            dataset.data.forEach((value, index) => {
-              totals[index] = (totals[index] || 0) + value;
-            });
-            return totals;
-          }, [] as number[]); // Vẽ tổng số
-          totalsByMonth.forEach((total, index) => {
-            const xPos = scales.x.getPixelForValue(index);
-            ctx.fillText(total.toString(), xPos, chartArea.top - 16);
-          });
-
-          // Vẽ nhãn tháng ở dưới
-          ctx.font = "12px Pretendard, sans-serif";
-          ctx.fillStyle = "#ffffff";
-
-          data.labels.forEach((month, index) => {
-            const xPos = scales.x.getPixelForValue(index);
-            ctx.fillText(month.toString(), xPos, chartArea.bottom + 12);
-          });
-        },
-      };
-
-      // Khởi tạo chart mới
-      const ctx = chartRef.current.getContext("2d");
-      if (ctx) {
-        chartInstance.current = new Chart(ctx, {
-          type: "bar",
-          data: data,
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-              padding: {
-                top: 25, // Thêm padding phía trên cho tổng
-                bottom: 25, // Thêm padding phía dưới cho tên tháng
-              },
-            },
-            scales: {
-              x: {
-                stacked: false,
-                grid: {
-                  display: false,
-                },
-                ticks: {
-                  display: false, // Ẩn nhãn tháng vì chúng ta sẽ tự tạo riêng
-                },
-              },
-              y: {
-                stacked: false,
-                beginAtZero: true,
-                grid: {
-                  color: "rgba(88, 88, 105, 0.2)",
-                  borderDash: [1, 2],
-                },
-                ticks: {
-                  stepSize: 20,
-                  color: "rgba(255, 255, 255, 0.8)",
-                },
-              },
-            },
-            plugins: {
-              legend: {
-                display: false, // Ẩn legend mặc định vì chúng ta sẽ tạo custom legend
-              },
-              tooltip: {
-                backgroundColor: "rgba(0, 0, 0, 0.8)",
-                titleColor: "#FFF",
-                bodyColor: "#FFF",
-                padding: 10,
-                borderWidth: 0,
-              },
-            },
+  const [loading, setLoading] = useState<boolean>(true);
+  const [projectData, setProjectData] = useState<MonthlyProjectData | null>(
+    null
+  );
+  const [chartData, setChartData] = useState<BarChartData>({
+    labels: [],
+    datasets: [],
+  });
+  // Create chart data from API response
+  const createChartData = useCallback(
+    (data: MonthlyProjectData): BarChartData => {
+      return {
+        labels: data.data.map((item) => item.month),
+        datasets: [
+          {
+            label: "Level 1",
+            data: data.data.map((item) => item.level1),
+            backgroundColor: "#07BFCB", // Level 1 color from Figma
+            barPercentage: 0.65,
+            categoryPercentage: 0.6,
           },
-          plugins: [bgGradientPlugin, labelsPlugin],
-        });
-      }
-    }
+          {
+            label: "Level 2",
+            data: data.data.map((item) => item.level2),
+            backgroundColor: "#FF9100", // Level 2 color from Figma
+            barPercentage: 0.65,
+            categoryPercentage: 0.6,
+          },
+          {
+            label: "Level 3",
+            data: data.data.map((item) => item.level3),
+            backgroundColor: "#1DE9B6", // Level 3 color from Figma
+            barPercentage: 0.65,
+            categoryPercentage: 0.6,
+          },
+        ],
+      };
+    },
+    []
+  );
 
-    // Cleanup khi component unmount
-    return () => {
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
+  // Fetch project data on component mount and when category changes
+  useEffect(() => {
+    const getProjectData = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchMonthlyProjectLevels(category);
+        setProjectData(data);
+        setChartData(createChartData(data));
+      } catch (error) {
+        console.error("Failed to fetch monthly project data:", error);
+      } finally {
+        setLoading(false);
       }
     };
-  }, []);
 
-  // Tạo custom legend giống như trong thiết kế Figma
-  const renderLegendItem = (color: string, label: string) => (
-    <div className="flex items-center gap-1 text-sm">
-      <div className="w-3 h-3 rounded" style={{ backgroundColor: color }}></div>
-      <span className="text-white text-xs">{label}</span>
-    </div>
-  );
-  return (
-    <div className="bg-[#101010] rounded-2xl p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 w-full h-full">
-      {/* Title Container */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-1">
-          <h3 className="text-white text-base sm:text-lg font-bold">{title}</h3>
-        </div>
-        {category && (
-          <p className="text-white/0 text-xs sm:text-sm font-bold">{category}</p>
-        )}
+    getProjectData();
+  }, [category, createChartData]);
+  // Chart options with proper typing
+  const options: ChartOptions<"bar"> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: "#FFFFFF",
+          font: {
+            family: "Pretendard, sans-serif",
+          },
+        },
+      },
+      y: {
+        beginAtZero: true,
+        grid: {
+          color: "#585869",
+          lineWidth: 1,
+        },
+        ticks: {
+          color: "#70707C",
+          font: {
+            family: "Pretendard, sans-serif",
+          },
+          stepSize: 10,
+          callback: function (value) {
+            return value;
+          },
+        },
+        max: 50, // Maximum value on Y-axis
+      },
+    },
+    plugins: {
+      legend: {
+        position: "bottom" as const,
+        align: "center" as const,
+        labels: {
+          color: "#FFFFFF",
+          padding: 20,
+          usePointStyle: true,
+          pointStyle: "circle",
+          font: {
+            family: "Pretendard, sans-serif",
+            size: 12,
+          },
+        },
+      },
+      title: {
+        display: false,
+      },
+      tooltip: {
+        backgroundColor: "#373743",
+        titleFont: {
+          family: "Pretendard, sans-serif",
+          size: 14,
+          weight: "bold" as const,
+        },
+        bodyFont: {
+          family: "Pretendard, sans-serif",
+          size: 12,
+        },
+        padding: 10,
+        cornerRadius: 6,
+        callbacks: {
+          label: function (context: TooltipItem<"bar">) {
+            return `${context.dataset.label}: ${context.formattedValue}`;
+          },
+        },
+      },
+    },
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-[#212124] rounded-lg p-4 md:p-6 flex items-center justify-center">
+        <div className="text-white">Loading project data...</div>
       </div>
-      {/* Chart Container */}
-      <div className="flex flex-col justify-between items-center flex-grow min-h-[200px] w-full">
-        <div className="relative w-full h-full min-h-[160px]">
-          <canvas ref={chartRef}></canvas>
+    );
+  }
+  return (
+    <div className="bg-[#212124] rounded-lg p-4 md:p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-white text-lg font-medium">{title}</h3>
+        <div className="text-[#1DE9B6] font-medium">
+          {projectData?.category}
         </div>
-
-        {/* Legend Container */}
-        <div className="flex flex-wrap justify-center gap-3 mt-2">
-          {renderLegendItem("#07BFCB", "Level 1")}
-          {renderLegendItem("#FF9100", "Level 2")}
-          {renderLegendItem("#C6FF00", "Level 3")}
-        </div>
+      </div>
+      <div className="h-64">
+        {!loading && (
+          <Bar
+            options={options} 
+            data={chartData} 
+            redraw={false}
+          />
+        )}
       </div>
     </div>
   );
