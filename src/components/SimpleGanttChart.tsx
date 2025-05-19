@@ -34,7 +34,8 @@ type BarChartData = ChartData<"bar", number[], string>;
 
 const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
   title = "Project Timeline",
-}) => {  const [loading, setLoading] = useState<boolean>(true);
+}) => {
+  const [loading, setLoading] = useState<boolean>(true);
   const [projectData, setProjectData] = useState<ProjectTimelineData[]>([]);
   const [chartData, setChartData] = useState<BarChartData>({
     labels: [],
@@ -69,12 +70,15 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
     }
   };
   // Dataset colors from Figma
-  const colors = useMemo(() => ({
-    requirementDiscussion: "#8252FF", // Purple
-    proposal: "#1A31FF", // Blue
-    approved: "#008CFF", // Light blue
-    developing: "#1DE9B6", // Green
-  }), []);
+  const colors = useMemo(
+    () => ({
+      requirementDiscussion: "#8252FF", // Purple
+      proposal: "#1A31FF", // Blue
+      approved: "#008CFF", // Light blue
+      developing: "#1DE9B6", // Green
+    }),
+    []
+  );
 
   // Create dataset object for chart
   const createChartData = useCallback(
@@ -90,7 +94,9 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             label: "Requirement Discussion",
             data: data.map((item) => item.phases.requirementDiscussion),
             backgroundColor: colors.requirementDiscussion,
-            barThickness: 10,
+            barThickness: 16, // Đổi thành 16px như yêu cầu
+            barPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
+            categoryPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
             borderWidth: 0,
             borderRadius: 2,
             stack: "Stack 0", // Add stack for stacking bars
@@ -99,7 +105,9 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             label: "Proposal",
             data: data.map((item) => item.phases.proposal),
             backgroundColor: colors.proposal,
-            barThickness: 10,
+            barThickness: 16, // Đổi thành 16px như yêu cầu
+            barPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
+            categoryPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
             borderWidth: 0,
             borderRadius: 2,
             stack: "Stack 0", // Add stack for stacking bars
@@ -108,7 +116,9 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             label: "Approved",
             data: data.map((item) => item.phases.approved),
             backgroundColor: colors.approved,
-            barThickness: 10,
+            barThickness: 16, // Đổi thành 16px như yêu cầu
+            barPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
+            categoryPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
             borderWidth: 0,
             borderRadius: 2,
             stack: "Stack 0", // Add stack for stacking bars
@@ -117,7 +127,9 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             label: "Developing",
             data: data.map((item) => item.phases.developing),
             backgroundColor: colors.developing,
-            barThickness: 10,
+            barThickness: 16, // Đổi thành 16px như yêu cầu
+            barPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
+            categoryPercentage: 0.9, // Điều chỉnh để tạo khoảng cách 8px
             borderWidth: 0,
             borderRadius: 2,
             stack: "Stack 0", // Add stack for stacking bars
@@ -189,6 +201,15 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             lineWidth: 1,
           },
           stacked: true, // Enable stacking on Y axis
+          afterFit: function (scale) {
+            // Ensure each bar has correct spacing
+            const numberOfBars = projectData.length;
+            if (numberOfBars > 0) {
+              // Calculate height per bar with 8px spacing
+              const heightPerBar = 24; // 16px bar height + 8px spacing
+              scale.height = numberOfBars * heightPerBar;
+            }
+          },
         },
         x: {
           grid: {
@@ -197,6 +218,7 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             lineWidth: 1,
           },
           ticks: {
+            display: false,
             font: {
               family: "Pretendard, sans-serif",
               size: 14,
@@ -261,29 +283,26 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
       </h2>
 
       {/* Grid-based Gantt chart layout */}
-      <div className="grid grid-cols-[240px_1fr] grid-rows-[auto_1fr] w-full overflow-hidden bg-[#212124]">
+      <div className="grid grid-cols-[151px_1fr] grid-rows-[auto_1fr] w-full overflow-hidden bg-[#212124]">
         {/* Project header - fixed */}
-        <div className="col-start-1 row-start-1 bg-[#373743] p-3 font-semibold text-white flex items-center z-10 rounded-tl-md h-[50px]">
+        <div className="col-start-1 row-start-1 bg-[#373743] px-3 py-2 font-semibold text-white flex items-center z-10 rounded-tl-md h-10">
           Projects
         </div>
-
         {/* Projects column - fixed */}
-        <div className="col-start-1 row-start-2 bg-[#212124] border-r border-[#373743] z-10 shadow-md">
+        <div className="col-start-1 row-start-2 bg-[#212124] border-r border-[#373743] z-10 shadow-md mt-[9px]">
           {projectData.map((item) => (
             <div
               key={`project-${item.project.id}`}
-              className="flex items-center p-3 border-b border-[#373743]"
-              style={{ height: "50px" }}
+              className="flex items-center px-3 h-4 mb-2"
             >
               <div
                 className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
                 style={{ backgroundColor: getStatusColor(item.project.status) }}
               ></div>
               <span
-                className="text-white text-sm whitespace-nowrap overflow-hidden text-ellipsis"
+                className="blocktext-white text-xs whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px] leading-[120%]"
                 style={{
                   color: getStatusColor(item.project.status),
-                  maxWidth: "200px",
                 }}
                 title={item.project.name}
               >
@@ -292,27 +311,26 @@ const SimpleGanttChart: React.FC<SimpleGanttChartProps> = ({
             </div>
           ))}
         </div>
-
         {/* Chart scroll container - contains both months header and chart */}
         <div className="col-start-2 row-span-2 overflow-x-auto z-[1] bg-[#212124] scrollbar-thin scrollbar-track-[#2d2d30] scrollbar-thumb-[#555]">
           {/* Months header - in the same scroll container as chart */}
-          <div className="bg-[#373743] h-[50px] sticky top-0 z-[1] w-full">
+          <div className="bg-[#373743] h-10 sticky top-0 z-[1] w-full">
             <div className="flex min-w-[1020px] w-full bg-[#373743] border-b border-[#444]">
               {months.map((month, index) => (
                 <div
                   key={`month-${index}`}
-                  className="text-white p-3 flex items-center justify-center flex-1 text-center border-r border-[rgba(88,88,105,0.3)]"
+                  className="text-white py-2 px-3 flex items-center justify-center flex-1 text-center border-r border-[rgba(88,88,105,0.3)]"
                 >
                   {month}
                 </div>
               ))}
             </div>
-          </div>          {/* Chart area - in the same scroll container as months header */}
+          </div>
+          {/* Chart area - in the same scroll container as months header */}
           <div
+            className="min-w-[1020px] mt-[5px]"
             style={{
-              minWidth: "1020px",
-              height: `${projectData.length * 50}px`,
-              paddingTop: "4px",
+              height: `${(projectData.length - 1) * 32}px`, // 32px cho mỗi project (16px nội dung + 16px khoảng cách)
             }}
           >
             <Bar options={options} data={chartData} redraw={false} />

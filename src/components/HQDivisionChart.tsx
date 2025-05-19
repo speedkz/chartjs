@@ -139,8 +139,7 @@ const HQDivisionChart: React.FC<HQDivisionChartProps> = ({
           display: false,
           color: '#585869',
           lineWidth: 1,
-        },
-        ticks: {
+        },        ticks: {
           font: {
             family: 'Pretendard, sans-serif',
             size: 12,
@@ -150,6 +149,29 @@ const HQDivisionChart: React.FC<HQDivisionChartProps> = ({
           autoSkip: false,
           maxRotation: 45,
           minRotation: 45,
+          callback: function(_, index) {
+            const ctx = this.chart.ctx;
+            const label = this.getLabelForValue(index);
+            
+            // Maximum width for x-axis labels
+            const maxWidth = 73;
+            
+            // Configure font for measurement
+            ctx.font = '12px Pretendard, sans-serif';
+            
+            // Measure text width
+            const textWidth = ctx.measureText(label).width;
+            
+            if (textWidth > maxWidth) {
+              let truncatedText = label;
+              while (truncatedText.length > 0 && ctx.measureText(truncatedText + '...').width > maxWidth) {
+                truncatedText = truncatedText.substring(0, truncatedText.length - 1);
+              }
+              return truncatedText + '...';
+            }
+            
+            return label;
+          }
         },
         border: {
           display: false
@@ -195,8 +217,7 @@ const HQDivisionChart: React.FC<HQDivisionChartProps> = ({
       },
       title: {
         display: false,
-      },
-      tooltip: {
+      },      tooltip: {
         backgroundColor: '#373743',
         titleFont: {
           family: 'Pretendard, sans-serif',
@@ -212,9 +233,14 @@ const HQDivisionChart: React.FC<HQDivisionChartProps> = ({
         callbacks: {
           title: function(items) {
             if (items.length > 0) {
+              // Luôn hiển thị tên đầy đủ trong tooltip
               return divisions[items[0].dataIndex]?.name || '';
             }
             return '';
+          },
+          label: function(context) {
+            const value = context.parsed.y;
+            return `Value: ${value}`;
           }
         }
       },
