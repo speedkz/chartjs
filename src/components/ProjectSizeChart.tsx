@@ -46,11 +46,10 @@ const ProjectSizeChart: React.FC<ProjectSizeProps> = ({
       // Ensure we're using project names as labels (for Y-axis)
       labels: projectData.map((project) => project.name),
       datasets: [
-        {
-          label: "Size",
+        {          label: "Size",
           data: projectData.map((project) => project.size),
           backgroundColor: "#008CFF", // Blue color from Figma design
-          barThickness: 8,
+          barThickness: 16, // Exactly 16px as per requirement
           borderWidth: 0,
           borderRadius: 4,
         },
@@ -105,6 +104,13 @@ const ProjectSizeChart: React.FC<ProjectSizeProps> = ({
       responsive: true,
       animation: {
         duration: 500, // Reduce animation duration to reduce flickering
+      },      layout: {
+        padding: {
+          left: 20, // Increased left padding to prevent text cutting at the beginning
+          right: 10,
+          top: 5,
+          bottom: 5
+        }
       },
       scales: {
         y: {
@@ -112,27 +118,33 @@ const ProjectSizeChart: React.FC<ProjectSizeProps> = ({
             display: false,
             drawOnChartArea: false,
           },
+          border: {
+            display: false,
+          },
+          position: 'left',
           ticks: {
             font: {
               family: "Pretendard, sans-serif",
               size: 13,
             },
             color: "#FFFFFF",
+            padding: 10, // Increased padding to avoid text cutting
             // Improved truncation for project names with proper typing
             callback: function (this: Scale, tickValue: string | number) {
               const ctx = this.chart.ctx;
               const value = chartData.labels?.[+tickValue]
                 ? chartData.labels[+tickValue]
                 : String(tickValue);
-              // The original code for truncation is correct
-              // Maximum width for project names
-              const maxWidth = 140;
+                // Maximum width for project names
+              const maxWidth = 100; // Reduced to ensure no cutting with ellipsis
+              
               // Configure font for measurement
               ctx.font = "13px Pretendard, sans-serif";
 
               // Measure text width
               const textWidth = ctx.measureText(value).width;
 
+              // If text exceeds max width, truncate from the end with ellipsis
               if (textWidth > maxWidth) {
                 let truncatedText = value;
                 while (
@@ -148,11 +160,11 @@ const ProjectSizeChart: React.FC<ProjectSizeProps> = ({
               }
 
               return value;
-            },          },
-          // Add some padding to ensure labels have enough space
+            },
+          },
           afterFit: function (scale: Scale) {
-            // Increase width to ensure project names are visible
-            scale.width = 180; // Fixed width for the y-axis - slightly increased for better spacing
+            // Set width to exactly 120px for the y-axis as required
+            scale.width = 120; // Fixed width for the y-axis to 120px
           },
         },
         x: {
@@ -217,7 +229,7 @@ const ProjectSizeChart: React.FC<ProjectSizeProps> = ({
         },
       },
     }),
-    [projects]
+    [projects, chartData.labels]
   );
 
   if (loading) {
