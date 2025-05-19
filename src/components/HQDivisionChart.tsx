@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import type { ChartData, ChartOptions, TooltipItem } from "chart.js";
+import type { ChartData, ChartOptions, Plugin, Chart } from "chart.js";
 import {
   BarElement,
   CategoryScale,
@@ -12,8 +12,18 @@ import {
 import { Bar } from "react-chartjs-2";
 import type { DivisionData } from "../api/hqDivisionApi";
 import { fetchHQDivisionData } from "../api/hqDivisionApi";
+import { zeroLinePlugin } from "./constants";
 
 // Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  zeroLinePlugin
+);
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -151,6 +161,9 @@ const HQDivisionChart: React.FC<HQDivisionChartProps> = ({
           // This controls column width within a group
           // Smaller value makes columns thinner
           barPercentage: 0.9,
+          border: {
+            display: false,
+          },
           ticks: {
             font: {
               family: "Pretendard, sans-serif",
@@ -191,15 +204,12 @@ const HQDivisionChart: React.FC<HQDivisionChartProps> = ({
               return label;
             },
           },
-          border: {
-            display: false,
-          },
         },
         y: {
           beginAtZero: true,
           max: 45,
           grid: {
-            display: false,
+            display: false, // Don't show regular grid lines
             color: "#585869",
             lineWidth: 1,
           },
