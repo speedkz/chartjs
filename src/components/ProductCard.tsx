@@ -1,6 +1,6 @@
 import React from "react";
 import arrowIcon from "../assets/icons/arrow-icon.svg";
-import { statusColors } from "../api/productApi";
+import "./ProductCard.css";
 
 type StepIndicatorProps = {
   totalSteps: number;
@@ -13,27 +13,26 @@ const StepIndicator: React.FC<StepIndicatorProps> = ({
   currentStep,
   status,
 }) => {
-  const getColor = (step) => {
+  const getColor = (step: number) => {
     if (step > currentStep) {
-      return "bg-[#EDEDED]";
+      return "indicator-inactive";
     }
-    // Use status-matching colors from the status cards for the progress bar
-    if (status === "error") return `bg-[${statusColors.error.main}]`; // Red from error status card
-    if (status === "complete") return `bg-[${statusColors.complete.main}]`; // Green from complete status card
-    return `bg-[${statusColors.progress.main}]`;
+    // Use status-matching colors from status cards
+    if (status === "error") return "indicator-error"; 
+    if (status === "complete") return "indicator-complete"; 
+    return "indicator-progress";
   };
-
   return (
-    <div className="flex flex-row gap-[3px] w-full">
+    <div className="step-indicator">
       {Array.from({ length: totalSteps }).map((_, index) => (
         <div
           key={index}
-          className={`h-3 flex-1 ${getColor(index + 1)} ${
+          className={`indicator-step ${getColor(index + 1)} ${
             index === 0
-              ? "rounded-l-[10px] rounded-r-[2px]"
+              ? "indicator-first"
               : index === totalSteps - 1
-              ? "rounded-r-[10px] rounded-l-[2px]"
-              : "rounded-[2px]"
+              ? "indicator-last"
+              : "indicator-middle"
           }`}
         />
       ))}
@@ -48,16 +47,7 @@ type TagProps = {
 
 const Tag: React.FC<TagProps> = ({ text, variant = "default" }) => {
   return (
-    <div
-      className={`
-      py-[3px] px-2 rounded text-xs border
-      ${
-        variant === "highlight"
-          ? "bg-[#FFF5F0] border-[#FFA77B] text-[#FFA172]"
-          : "bg-white border-[#D9D9D9] text-[#999999]"
-      }
-    `}
-    >
+    <div className={`tag ${variant === "highlight" ? "tag-highlight" : "tag-default"}`}>
       {text}
     </div>
   );
@@ -69,21 +59,19 @@ type StatusBadgeProps = {
 };
 
 const StatusBadge: React.FC<StatusBadgeProps> = ({ status, text }) => {
-  const getStatusStyles = () => {
+  const getStatusClass = () => {
     switch (status) {
       case "complete":
-        return `${statusColors.complete.iconBg} text-[${statusColors.complete.main}]`;
+        return "status-badge-complete";
       case "error":
-        return `${statusColors.error.iconBg} text-[${statusColors.error.main}]`;
+        return "status-badge-error";
       default:
-        return `${statusColors.progress.iconBg} text-[${statusColors.progress.main}]`;
+        return "status-badge-progress";
     }
   };
 
   return (
-    <div
-      className={`${getStatusStyles()} rounded-full py-1 px-2 text-xs font-semibold`}
-    >
+    <div className={`status-badge ${getStatusClass()}`}>
       {text}
     </div>
   );
@@ -120,39 +108,24 @@ const ProductCard: React.FC<ProductCardProps> = ({
   expanded = false,
   onToggleExpand,
 }) => {
-  return (
-    <div
-      className={`bg-white border ${
-        expanded
-          ? `border-[${statusColors.progress.main}] shadow-lg h-full`
-          : "border-[#EBEBEB]"
-      } rounded-xl ${expanded ? "p-6" : "p-5"} flex flex-col ${
-        expanded ? "gap-4" : "gap-3"
-      } transition-all duration-300`}
-    >
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-row justify-between items-center flex-wrap gap-1">
-          <div className="flex flex-row items-center gap-2">
-            <p className="text-[#2C3238] text-base font-bold">{date}</p>
+  return (    <div className={`product-card ${expanded ? 'product-card-expanded' : 'product-card-normal'} card-content`}>
+      <div className="card-header">
+        <div className="card-date-status">
+          <div className="date-status-container">
+            <p className="card-date">{date}</p>
             <StatusBadge status={status} text={statusText} />
           </div>
         </div>
 
-        <div className="flex flex-row justify-between items-start gap-6">
-          <div className="flex flex-col gap-1 flex-1">
-            <div className="w-full">
-              <h3
-                className={`${
-                  expanded
-                    ? `text-[${statusColors.progress.main}]`
-                    : "text-[#2C3238]"
-                } text-xl font-bold transition-colors duration-200`}
-              >
+        <div className="card-main-content">
+          <div className="card-details">
+            <div className="product-title">
+              <h3 className={`product-title-text ${expanded ? 'product-title-text-expanded' : 'product-title-text-normal'}`}>
                 {productName}
               </h3>
             </div>
 
-            <div className="flex flex-row flex-wrap gap-1 mt-1">
+            <div className="tags-container">
               {tags.map((tag, idx) => (
                 <Tag
                   key={idx}
@@ -162,71 +135,65 @@ const ProductCard: React.FC<ProductCardProps> = ({
               ))}
             </div>
             {expanded ? (
-              <div className="mt-3">
-                <p className="text-[#666666] text-base font-semibold">
+              <div className="expanded-content">
+                <p className="production-info">
                   {production}
                 </p>
-                <p className="text-[#666666] text-sm leading-6 mt-2">
+                <p className="description">
                   {description}
                 </p>
                 {/* Additional details when expanded */}
-                <div className="mt-4 grid grid-cols-2 gap-4">
-                  <div className="bg-[#F8F9FA] rounded-lg p-3">
-                    <p className="text-[#2C3238] text-sm font-semibold">
+                <div className="details-grid">
+                  <div className="details-box">
+                    <p className="details-title">
                       제품 분류 코드
                     </p>
-                    <p className="text-[#666666] text-sm mt-1">ADH-STC-001</p>
+                    <p className="details-value">ADH-STC-001</p>
                   </div>
-                  <div className="bg-[#F8F9FA] rounded-lg p-3">
-                    <p className="text-[#2C3238] text-sm font-semibold">단위</p>
-                    <p className="text-[#666666] text-sm mt-1">Kg</p>
+                  <div className="details-box">
+                    <p className="details-title">단위</p>
+                    <p className="details-value">Kg</p>
                   </div>
                 </div>
                 {/* Additional expanded content - more details */}
-                <div className="mt-4 bg-[#F8F9FA] rounded-lg p-3">
-                  <p className="text-[#2C3238] text-sm font-semibold">
+                <div className="additional-info">
+                  <p className="details-title">
                     추가 정보
                   </p>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div className="info-grid">
                     <div>
-                      <p className="text-[#666666] text-xs">담당자</p>
-                      <p className="text-[#2C3238] text-sm">김영희</p>
+                      <p className="info-label">담당자</p>
+                      <p className="info-value">김영희</p>
                     </div>
                     <div>
-                      <p className="text-[#666666] text-xs">등록일</p>
-                      <p className="text-[#2C3238] text-sm">2025.01.01</p>
+                      <p className="info-label">등록일</p>
+                      <p className="info-value">2025.01.01</p>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="text-[#666666] text-sm leading-6 mt-2 line-clamp-2">
+              <p className="description description-truncated">
                 {description}
               </p>
             )}
           </div>
           <button
             onClick={onToggleExpand}
-            className="flex-shrink-0"
+            className="toggle-button"
             aria-label={expanded ? "Collapse details" : "Expand details"}
           >
             <img
               src={arrowIcon}
               alt={expanded ? "Collapse" : "Expand"}
-              className={`w-6 h-6 transition-transform ${
-                expanded ? "rotate-180" : ""
-              }`}
+              className={`toggle-icon ${expanded ? "toggle-icon-expanded" : ""}`}
             />
           </button>
         </div>
       </div>
 
-      <div
-        className={`flex flex-row justify-between items-center flex-wrap gap-5 ${
-          expanded ? "mt-4" : "mt-2"
-        }`}
-      >
-        <p className="text-[#2C3238] text-base font-semibold">Step.{currentStep}</p>
+      <div className={`step-container ${expanded ? "step-container-expanded" : "step-container-normal"}`}>
+        <p className="step-text">Step.{currentStep}</p>
         <StepIndicator
           totalSteps={totalSteps}
           currentStep={currentStep}

@@ -1,0 +1,124 @@
+/* StatusCards.css */
+
+.status-cards-container {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.status-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 1.25rem 2.5rem;
+  border-radius: 1.5rem;
+  flex: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.status-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.status-card-inactive {
+  background-color: white;
+  border: 1px solid #EBEBEB;
+}
+
+.status-card-all {
+  background-color: #726D6D;
+}
+
+.status-card-complete {
+  background-color: #59C464;
+}
+
+.status-card-progress {
+  background-color: #447FEC;
+}
+
+.status-card-error {
+  background-color: #FA5B56;
+}
+
+.icon-container {
+  position: relative;
+}
+
+.icon-background {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+}
+
+.icon-bg-all {
+  background-color: white;
+}
+
+.icon-bg-complete {
+  background-color: #E6FFE8;
+}
+
+.icon-bg-progress {
+  background-color: #E8F0FF;
+}
+
+.icon-bg-error {
+  background-color: #FFEEEE;
+}
+
+.icon-image {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+}
+
+.card-inner-content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.card-title {
+  font-size: 1.25rem;
+}
+
+.card-title-active {
+  color: white;
+}
+
+.card-title-inactive {
+  color: #222222;
+}
+
+.card-count {
+  font-size: 2.625rem;
+  font-weight: 700;
+}
+
+.card-count-active {
+  color: white;
+}
+
+.card-count-inactive {
+  color: #222222;
+}
